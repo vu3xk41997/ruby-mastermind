@@ -16,8 +16,8 @@ module Display
 
             You have 12 chances to guess the correct answer.
             During each guess, the code will be checked with the secret code and display the matching result.
-            If both color and position matched, it will show as \"correct match\".
-            If only color matched, it will show as \"correct color\".
+            If both color and position matched, it will show as \"◉\".
+            If only color matched, it will show as \"◯\".
             If you got the secret code within 12 chances, you win!
 
             Should we (p)lay or you want to (q)uit?
@@ -31,12 +31,18 @@ module Display
             (r)ed, (b)lue, (g)reen, (y)ellow, (o)range, (p)urple.
             Use (q)uit at any time to end the game.
 
-            What's your guess?
         HEREDOC
     end
 
     def display_input_error
         "\e[31mInvalid input, please try again.\e[0m"
+    end
+
+    def display_clue(exact, correct)
+        print "Clues:"
+        exact.times { print " ◉ " }
+        correct.times { print " ◯ " }
+        puts " "
     end
 
     def display_winner
@@ -48,12 +54,68 @@ module Display
     end
 end
 
+
+
+# create Clue
+module Clue
+
+    def compare(master, guess)
+        temp_master = master.clone
+        temp_guess = guess.clone
+        @exact_number = exact_match(temp_master, temp_guess)
+        @correct_number = correct_color(temp_master, temp_guess)
+        # @total_number = @exact_number + @same_number
+    end
+
+    def exact_match(master, guess)
+        exact = 0
+        master.each_with_index do |item, index|
+          next unless item == guess[index]
+    
+          exact += 1
+          master[index] = '◉'
+          guess[index]  = '◉'
+        end
+        exact
+      end
+    
+      def correct_color(master, guess)
+        correct = 0
+        guess.each_index do |index|
+          next unless guess[index] != '◉' && master.include?(guess[index])
+    
+          same += 1
+          remove = master.find_index(guess[index])
+          master[remove] = '◯'
+          guess[index] = '◯'
+        end
+        correct
+      end
+
+    def game_solved?(master, guess)
+        master == guess
+    end
+
+    def repeat_game
+        puts "Play again? (y/n)"
+        repeat_input = gets.chomp.downcase
+        if repeat_input == 'y'
+            play
+        else
+            puts "See you!"
+        end
+    end
+end
+
+
+
 # create Game
 class Game
 
-    @@colors = ["r", "b", "g", "y", "o", "p"]
+    @@colors = ["r", "b", "g", "y", "o", "p"].freeze
     
     include Display
+    include Clue
 
     attr_reader :player
     def initialize
@@ -66,7 +128,7 @@ class Game
         intro_input = gets.chomp.downcase
         case intro_input
         when "p"
-            guess
+            game_start
         when "i"
             puts display_instruction
             instriction_input = gets.chomp.downcase
@@ -75,7 +137,7 @@ class Game
                 instriction_input = gets.chomp.downcase
             end
             if instriction_input == "p"
-                guess
+                game_start
             elsif instriction_input =="q"
                 warn "See you next time."
                 exit 1
@@ -89,25 +151,46 @@ class Game
         end
     end
 
-    def guess
-        set_secret_code
+    def game_start
         puts display_guess_promt
-        guess = gets.chomp
+        set_secret_code
+        @player.guess
+        compare(@@secret_code, @player.guess_array)
+        display_clue(@exact_number, @correct_number)
     end
 
     def set_secret_code
-        code = [@@colors.sample, @@colors.sample, @@colors.sample, @@colors.sample]
+        @@secret_code = [@@colors.sample, @@colors.sample, @@colors.sample, @@colors.sample]
+        p @@secret_code
     end
 
 end
 
 class Guess_player
 
-    attr_reader :guess_array, :code
+    attr_reader :guess_array
 
     def initialize
         @guess_array = []
-        @code = []
+    end
+
+    def guess
+        puts "Choose from the following: (r)ed, (b)lue, (g)reen, (y)ellow, (o)range, (p)urple"
+        for i in 1..4
+            player_guess = gets.chomp
+            i += 1
+            if player_guess == "q"
+                warn "See you next time."
+                exit 1
+            else
+                @guess_array.push(player_guess)
+            end
+        end
+        puts "\nYour guess is #{@guess_array}"
+    end
+
+    def clear_guess
+        @guess_array = []
     end
 end
 
