@@ -84,7 +84,7 @@ module Clue
         guess.each_index do |index|
           next unless guess[index] != '◉' && master.include?(guess[index])
     
-          same += 1
+          correct += 1
           remove = master.find_index(guess[index])
           master[remove] = '◯'
           guess[index] = '◯'
@@ -102,7 +102,8 @@ module Clue
         if repeat_input == 'y'
             play
         else
-            puts "See you!"
+            warn "See you next time."
+            exit 1
         end
     end
 end
@@ -154,14 +155,27 @@ class Game
     def game_start
         puts display_guess_promt
         set_secret_code
-        @player.guess
-        compare(@@secret_code, @player.guess_array)
-        display_clue(@exact_number, @correct_number)
+        for i in (12).downto(1)
+            @player.guess
+            if game_solved?(@@secret_code, @player.guess_array)
+                puts display_winner
+                repeat_game
+            else
+                compare(@@secret_code, @player.guess_array)
+                display_clue(@exact_number, @correct_number)
+                puts "\nYou have #{i-1} chances left.\n\n"
+                @player.clear_guess
+            end
+        end
+        puts display_loser
+        puts "The secret code is #{@@secret_code}"
+        @player.clear_guess
+        repeat_game
     end
 
     def set_secret_code
         @@secret_code = [@@colors.sample, @@colors.sample, @@colors.sample, @@colors.sample]
-        p @@secret_code
+        # p @@secret_code
     end
 
 end
